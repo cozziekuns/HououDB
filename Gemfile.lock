@@ -13,6 +13,7 @@ GEM
       rack-protection (= 2.0.5)
       tilt (~> 2.0)
     tilt (2.0.9)
+    zlib (1.0.0)
 
 PLATFORMS
   ruby
@@ -21,6 +22,7 @@ DEPENDENCIES
   pg (~> 1.1)
   sequel (~> 5.18)
   sinatra (~> 2.0)
+  zlib (~> 1.0)
 
 BUNDLED WITH
    2.0.1

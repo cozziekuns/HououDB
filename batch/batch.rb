@@ -1,73 +1,104 @@
+# encoding: UTF-8
+
+require_relative "parser.rb"
 require 'net/http'
 require 'zlib'
 
-def log_visited?(log_url)
-  # Eventually this will be a DB check? To see if the logs have been parsed.
-  return false
-end
+#==============================================================================
+# ** Batch_TenhouLog
+#==============================================================================
 
-def generate_raw_uri(log_uri)
-  raw_uri = log_uri.gsub("?log=") {"mjlog2xml.cgi?"}
-  raw_uri.gsub("http") { "https" }
-end
+class Batch_TenhouLog
 
-def log_archive_filenames
-  filenames = []
+  def initialize
+    @players = []
+  end
 
-  response = Net::HTTP.get(URI('https://tenhou.net/sc/raw/list.cgi'))
-  response.body.scan(/(scc\d+\.html\.gz)/) { |match| 
-    filenames.push(match[0])
-  }
+  def log_visited?(log_url)
+    # Eventually this will be a DB check? To see if the logs have been parsed.
+    return false
+  end
 
-  return filenames
-end
+  def generate_raw_uri(log_uri)
+    raw_uri = log_uri.gsub("?log=") {"mjlog2xml.cgi?"}
+    raw_uri.gsub("http") { "https" }
+  end
 
-def log_urls(log_archive_filename)
-  log_urls = []
+  def log_archive_filenames
+    filenames = []
 
-  raw_url = 'https://tenhou.net/sc/raw/dat/' + log_archive_filename
-  response = Net::HTTP.get(URI(raw_url))
+    response = Net::HTTP.get(URI('https://tenhou.net/sc/raw/list.cgi'))
+    response.scan(/(scc\d+\.html\.gz)/) { |match| filenames.push(match[0]) }
 
-  body = Zlib::GzipReader.new(StringIO.new(response)).read
+    return filenames
+  end
 
-  # Need to capture player names somewhere here; might want to do 
-  # something for each line?
+  def log_urls(log_archive_filename)
+    log_urls = []
 
-  body.scan(/"(http:\/\/tenhou.net.+)"/) { |match| 
-    log_urls.push(match[0].gsub(/\/\d\//) { "\/3\/"} )
-  }
+    raw_url = 'https://tenhou.net/sc/raw/dat/' + log_archive_filename
+    response = Net::HTTP.get(URI(raw_url))
 
-  return log_urls
-end
+    body = Zlib::GzipReader.new(StringIO.new(response)).read
 
-def get_log_body(log_url)
-  request_uri = URI(log_url)
+    body.split("<br>").each { |line|
+      # For now, we're only going to get the stats for Hanchan.
+      next if not line["四鳳南喰赤"]
 
-  raw_uri = log_url.gsub("?log=") {"mjlog2xml.cgi?"}
-  raw_uri.gsub("http") { "https" }
+      @players = line.split("|")[-1].split(" ")
+      @players.map! { |s| s.gsub(/\(.+\)/) { "" } }
 
-  request = Net::HTTP::Get.new(log_uri)
-  request['origin'] = 'http://tenhou.net'
-  request['referer'] = log_url
+      line.scan(/"(http:\/\/tenhou.net.+)"/) { |match| 
+        log_urls.push(match[0].gsub(/\/\d\//) { "\/3\/"} )
+      }
+    }
 
-  response = Net::HTTP.start(request_uri.hostname, request_uri.port) { |http| 
-    http.request(request) 
-  }
+    return log_urls
+  end
 
-  return response.body
-end
+  def get_log_body(log_url)
+    request_uri = URI(log_url)
 
-def parse_body(log_body)
-  # parse MJ log
+    raw_uri = log_url.gsub("?log=") {"mjlog2xml.cgi?"}
+    raw_uri.gsub("http") { "https" }
+
+    request = Net::HTTP::Get.new(raw_uri)
+    request['origin'] = 'http://tenhou.net'
+    request['referer'] = log_url
+
+    response = Net::HTTP.start(request_uri.hostname, request_uri.port) { |http| 
+      http.request(request) 
+    }
+
+    return response.body
+  end
+
+  def parse_body(log_body)
+    parser = LogParser.new(log_body)
+    process_blob(parser.get_stat_blob)
+    exit
+  end
+
+  def process_blob(stat_blob)
+    @players.each_with_index { |player, i| 
+      p [player, stat_blob[:player_seats][i]]
+    }
+  end
+
+  def run
+    log_archive_filenames.each { |log_archive_filename|
+      log_urls(log_archive_filename).each { |log_url| 
+        next if log_visited?(log_url)
+        parse_body(get_log_body(log_url)) 
+      }
+    }
+  end
+
 end
 
 #-----------------------------------------------------------------------------
 # * Main
 #-----------------------------------------------------------------------------
 
-log_archive_filenames.each { |log_archive_filename|
-  log_urls.each { |log_url| 
-    next if log_visited?(log_url)
-    parse_body(get_log_body(log_url)) 
-  }
-}
+batch = Batch_TenhouLog.new
+batch.run

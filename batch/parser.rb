@@ -10,16 +10,19 @@ class LogParser
     @xml = Nokogiri::XML(log_body)
   end
 
+  def terminal_node
+    @xml.root.traverse { |node|
+      return node if node.attributes.has_key?('owari')
+    }
+  end
+
   def get_player_seats
-    terminal_node = @xml.xpath('//AGARI').select { |node| 
-      node.attributes.has_key?('owari') 
-    }.first
-    
     results = [] 
     
-    terminal_node.attributes['owari'].value.split(",").each_with_index { |uma, i|
+    values = terminal_node.attributes['owari'].value
+    values.split(",").each_with_index { |uma, i|
       next if i % 2 == 0
-      results.push([uma, i / 2])
+      results.push([uma.to_f, i / 2])
     }
 
     return results.sort { |a, b| b[0] <=> a[0] }.map { |ary| ary[1] }
@@ -40,13 +43,4 @@ class LogParser
     return blob
   end
 
-end
-
-def parse_body(log_body)
-    blob = {}
-    parsed_xml = Nokogiri::XML(log_body)
-
-    blob['avg_rating'] = get_average_rating(parsed_xml)
-
-    return blob
 end

@@ -11,7 +11,8 @@ require 'zlib'
 class Batch_TenhouLog
 
   def initialize
-    @players = []
+    @players = {}
+    @log_raw_url = ''
   end
 
   def log_visited?(log_url)
@@ -40,16 +41,17 @@ class Batch_TenhouLog
     response = Net::HTTP.get(URI(raw_url))
 
     body = Zlib::GzipReader.new(StringIO.new(response)).read
-
     body.split("<br>").each { |line|
       # For now, we're only going to get the stats for Hanchan.
       next if not line["四鳳南喰赤"]
 
-      @players = line.split("|")[-1].split(" ")
-      @players.map! { |s| s.gsub(/\(.+\)/) { "" } }
+      player_names = line.split("|")[-1].split(" ")
+      player_names.map! { |s| s.gsub(/\(.+\)/) { "" } }
 
       line.scan(/"(http:\/\/tenhou.net.+)"/) { |match| 
-        log_urls.push(match[0].gsub(/\/\d\//) { "\/3\/"} )
+        log_url = match[0].gsub(/\/\d\//) { "\/3\/"}
+        log_urls.push(log_url)
+        @players[log_url] = player_names
       }
     }
 
@@ -57,6 +59,8 @@ class Batch_TenhouLog
   end
 
   def get_log_body(log_url)
+    @log_raw_url = log_url
+
     request_uri = URI(log_url)
 
     raw_uri = log_url.gsub("?log=") {"mjlog2xml.cgi?"}
@@ -76,13 +80,14 @@ class Batch_TenhouLog
   def parse_body(log_body)
     parser = LogParser.new(log_body)
     process_blob(parser.get_stat_blob)
-    exit
   end
 
   def process_blob(stat_blob)
-    @players.each_with_index { |player, i| 
+    @players[@log_raw_url].each_with_index { |player, i| 
       p [player, stat_blob[:player_seats][i]]
     }
+    p stat_blob[:avg_rating]
+    p @log_raw_url 
   end
 
   def run
@@ -90,6 +95,8 @@ class Batch_TenhouLog
       log_urls(log_archive_filename).each { |log_url| 
         next if log_visited?(log_url)
         parse_body(get_log_body(log_url)) 
+        # TODO: Get rid of this exit
+        exit
       }
     }
   end
@@ -100,5 +107,4 @@ end
 # * Main
 #-----------------------------------------------------------------------------
 
-batch = Batch_TenhouLog.new
-batch.run
+Batch_TenhouLog.new.run

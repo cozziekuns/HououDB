@@ -15,7 +15,7 @@ Sequel.migration do
       foreign_key :west_player_id, :players
       foreign_key :north_player_id, :players
       Integer :avg_rating
-      String :tenhou_log      
+      String :tenhou_log
     end
   end
 

@@ -26,7 +26,7 @@ var app = new Vue({
     specifiers: [{ 
       id: 0, 
       text: 'Player Name:', 
-      name: 'player-0',
+      name: 'player_0',
     }],
   },
   methods: {
@@ -34,7 +34,7 @@ var app = new Vue({
       this.specifiers.push({
         id: current_specifier_id,
         text: 'Player Name:',
-        name: 'player-' + current_specifier_id.toString(),
+        name: 'player_' + current_specifier_id.toString(),
       });
       current_specifier_id++;
     },

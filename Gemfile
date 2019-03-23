@@ -17,3 +17,5 @@ gem "zlib", "~> 1.0"
 gem "nokogiri", "~> 1.10"
 
 gem "haml", "~> 5.0"
+
+gem "sinatra-contrib", "~> 2.0"

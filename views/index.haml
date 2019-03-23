@@ -1,21 +1,12 @@
-!!!
-%html
-  %head
-    %title HououDB
-    %script{ type: "text/javascript", src: "https://cdn.jsdelivr.net/npm/vue/dist/vue.js" }
-  %body
-    %div#app
-      %h1 Hanchan Database
-      %form{ action: "search", method: "GET" }
-        %ol
-          %hanchan-input{:"v-for" => "specifier in specifiers", 
-            :"v-bind:item" => "specifier",
-            :"v-bind:key" => "specifier.id",
-            :"v-on:remove" => "removeSpecifier",
-          }
-          %button{type: 'button',
-            :"v-on:click" => "addSpecifier",
-          }
-            Add Specifier
-        %input{ type: "submit" }
-    %script{ type: "text/javascript", src: "/js/index.js"}
+%div#app
+  %h1 Hanchan Database
+  %form{ action: "search", method: "GET" }
+    %ul
+      %hanchan-input{:"v-for" => "specifier in specifiers", 
+        :"v-bind:item" => "specifier",
+        :"v-bind:key" => "specifier.id",
+        :"v-on:remove" => "removeSpecifier",
+      }
+      %button{ type: "button", :"v-on:click" => "addSpecifier"}
+        Add Specifier
+    %input{ type: "submit" }

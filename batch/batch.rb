@@ -108,7 +108,7 @@ class Batch_TenhouLog
       }
 
       player_names = line.split("|")[-1].split(" ")
-      player_names.map! { |s| s.gsub(/\(.+\)/) { "" } }
+      player_names.map! { |s| s.gsub(/\([+-]?\d+\.\d\)/) { "" } }
 
       # TODO: Figure out what time zone this stuff is
       timestamp = nil

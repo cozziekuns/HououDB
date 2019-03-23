@@ -1,0 +1,19 @@
+%div
+  %table
+    %tr
+    %th Timestamp
+    %th Average Rating
+    %th East Player
+    %th South Player
+    %th West Player
+    %th North Player
+    %th Tenhou Log
+    - @hanchan_ary.each do |hanchan|
+      %tr
+      %td #{hanchan[:timestamp]}
+      %td #{hanchan[:rating]}
+      %td #{hanchan[:east_player_name]}
+      %td #{hanchan[:south_player_name]}
+      %td #{hanchan[:west_player_name]}
+      %td #{hanchan[:north_player_name]}
+      %td <a href="#{hanchan[:tenhou_log]}">Link</a>

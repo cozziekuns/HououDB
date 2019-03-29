@@ -1,7 +1,6 @@
 # encoding: UTF-8
 
-require_relative 'parser.rb'
-require_relative 'model.rb'
+require_relative 'game.rb'
 require 'net/http'
 require 'zlib'
 
@@ -49,6 +48,78 @@ class Batch_TenhouLog
     raw_uri = log_uri.gsub("?log=") {"mjlog2xml.cgi?"}
     raw_uri.gsub("http") { "https" }
   end
+
+  #---------------------------------------------------------------------------
+  # * ORM Helper Methods
+  #---------------------------------------------------------------------------
+
+  def create_hanchan(hanchan_log)
+    return @db[:hanchan].insert({
+      tenhou_log: hanchan_log.url,
+      time_start: hanchan_log.timestamp
+    })
+  end
+
+  def get_or_create_player(player_name)
+    player_model = @db[:players].where(username: player_name).first
+    
+    return player_model[:id] if player_model
+    return @db[:players].insert(username: player_name)
+  end
+
+  def get_or_create_players(hanchan_log)
+    player_ids = []
+
+    hanchan_log.players.each { |player_name|
+      player_id = get_or_create_player(player_name)
+      player_ids.push(player_id)
+    }
+
+    return player_ids
+  end
+
+  def create_hanchan_players(hanchan_players)
+    hanchan_player_ids = []
+
+    hanchan_players.each { |hanchan_player|
+      hanchan_player_id = @db[:hanchan_players].insert(hanchan_player.payload)
+      hanchan_player_ids.push(hanchan_player_id)
+    }
+
+    return hanchan_player_ids
+  end
+
+  def update_hanchan_with_player_ids(hanchan_id, hanchan_player_ids)
+    payload = {}
+
+    hanchan_player_fields = [
+      :east_hanchan_player_id,
+      :south_hanchan_player_id,
+      :west_hanchan_player_id,
+      :north_hanchan_player_id
+    ]
+
+    hanchan_player_ids.each_with_index { |player_id, i| 
+      payload[hanchan_player_fields[i]] = player_id
+    }
+
+    @db[:hanchan].where(id: hanchan_id).update(payload)
+  end
+
+  def create_hand_results(hand_results)
+    hand_result_ids = []
+    
+    hand_results.each { |hand_result| 
+      hand_result_id = @db[:hand_results].insert(hand_result.payload)
+      hand_result_ids.push(hand_result)
+    }
+
+    return hand_result_ids
+  end
+
+  #---------------------------------------------------------------------------
+  # * Log Scraping Methods
+  #---------------------------------------------------------------------------
 
   def log_archive_filenames
     filenames = []
@@ -119,55 +190,21 @@ class Batch_TenhouLog
   def parse_log_body(hanchan_log)
     log_body = get_log_body(hanchan_log.url)
 
-    parser = LogParser.new(log_body)
-    process_blob(hanchan_log, parser.get_stat_blob)
-  end
+    hanchan_id = create_hanchan(hanchan_log)
+    player_ids = get_or_create_players(hanchan_log)
 
-  def process_blob(hanchan_log, stat_blob)
-    hanchan = Model_Hanchan.new
+    puts "--------------------------------------"
+    puts " Created new Hanchan ID#{hanchan_id}"
+    puts " Player IDs: #{player_ids}"
+    puts "--------------------------------------"
 
-    hanchan_log.players.each_with_index { |player, placement|
-      # Get or create player id
-      player_model = @db[:players].where(username: player).first
-      if not player_model
-        player_id = @db[:players].insert(username: player)
-      else
-        player_id = player_model[:id]
-      end
+    hanchan = Game_Hanchan.new(hanchan_id, player_ids)
+    results = hanchan.parse(log_body)
 
-      seat = stat_blob[:player_seats][placement]
+    create_hand_results(results[:hand_results])
 
-      hanchan.add_player(
-        player_id,
-        placement,
-        seat,
-        stat_blob[:player_dan][seat],
-        stat_blob[:player_ratings][seat],
-        stat_blob[:player_scores][seat],
-      )
-    }
-
-    hanchan.time_start = hanchan_log.timestamp
-    hanchan.average_rating = stat_blob[:avg_rating]
-    hanchan.tenhou_log = hanchan_log.url
-    
-    hanchan.players.each { |hanchan_player|
-      hanchan_player.commit_to_db(@db)
-    }
-
-    hanchan_id = hanchan.commit_to_db(@db)
-
-    hanchan.players.each { |hanchan_player| 
-      hanchan_player.commit_hanchan_id(@db, hanchan_id)
-    }
-
-    stat_blob[:hand_results].each { |hand_result| 
-      hand_result_model = Model_HandResult.new(hand_result)
-      hand_result_model.hanchan_id = hanchan_id
-
-      hand_result_model.commit_to_db(@db)
-    }
-    exit
+    hanchan_player_ids = create_hanchan_players(results[:hanchan_players])
+    update_hanchan_with_player_ids(hanchan_id, hanchan_player_ids)
   end
 
   def run
@@ -175,9 +212,9 @@ class Batch_TenhouLog
       puts "--------------------------------------"
       puts "Begin parsing: #{log_archive_filename}"
       puts "--------------------------------------"
-      next unless log_archive_filename["scc2019032206"]
       get_hanchan_logs(log_archive_filename).each { |hanchan_log|
         next if log_visited?(hanchan_log)
+        puts "Begin parsing: #{hanchan_log.url}"
         parse_log_body(hanchan_log)
         puts "Finished parsing: #{hanchan_log.url}"
       }

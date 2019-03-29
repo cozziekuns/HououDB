@@ -241,8 +241,8 @@ class Game_Hanchan
     end
     score = node.attributes['ten'].value.split(',').map { |s| s.to_i }
   
-    winning_player = node.attributes['fromWho'].value.to_i
-    losing_player = node.attributes['who'].value.to_i
+    winning_player = node.attributes['who'].value.to_i
+    losing_player = node.attributes['fromWho'].value.to_i
 
     hand_result.winning_player = winning_player
     if winning_player == losing_player

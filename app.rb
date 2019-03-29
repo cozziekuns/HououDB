@@ -51,5 +51,5 @@ get '/search' do
     @hanchan_ary.push(formatted_hanchan)
   }
 
-  haml :search_results
+  haml :index
 end

@@ -1,10 +1,13 @@
 # encoding: UTF-8
 
 require_relative 'parser.rb'
+require_relative 'model.rb'
 require 'net/http'
 require 'zlib'
 
 require 'sequel'
+
+SAVE_LOG_FILE = true
 
 #==============================================================================
 # ** Log_Hanchan
@@ -20,41 +23,6 @@ class Log_Hanchan
     @url = url
     @players = players
     @timestamp = timestamp
-  end
-
-end
-
-#==============================================================================
-# ** Model_Hanchan
-#==============================================================================
-
-class Model_Hanchan
-
-  attr_accessor :tenhou_log
-  attr_accessor :time_start
-  attr_accessor :average_rating
-
-  def initialize
-    @time_start = nil
-    @players = Array.new(4)
-    @avg_rating = 0
-    @tenhou_log = nil
-  end
-
-  def add_player(player_id, seat)
-    @players[seat] = player_id
-  end
-
-  def commit_payload
-    return {
-      time_start: @time_start,
-      east_player_id: @players[0],
-      south_player_id: @players[1],
-      west_player_id: @players[2],
-      north_player_id: @players[3],
-      avg_rating: @average_rating,
-      tenhou_log: @tenhou_log,
-    }
   end
 
 end
@@ -158,22 +126,48 @@ class Batch_TenhouLog
   def process_blob(hanchan_log, stat_blob)
     hanchan = Model_Hanchan.new
 
-    hanchan_log.players.each_with_index { |player, i|
-      if not @db[:players].where(username: player).first
-        @db[:players].insert(username: player)
+    hanchan_log.players.each_with_index { |player, placement|
+      # Get or create player id
+      player_model = @db[:players].where(username: player).first
+      if not player_model
+        player_id = @db[:players].insert(username: player)
+      else
+        player_id = player_model[:id]
       end
 
-      player_id = @db[:players].where(username: player).get(:id)
-      raise Exception if not player_id
+      seat = stat_blob[:player_seats][placement]
 
-      hanchan.add_player(player_id, stat_blob[:player_seats][i])
+      hanchan.add_player(
+        player_id,
+        placement,
+        seat,
+        stat_blob[:player_dan][seat],
+        stat_blob[:player_ratings][seat],
+        stat_blob[:player_scores][seat],
+      )
     }
 
     hanchan.time_start = hanchan_log.timestamp
     hanchan.average_rating = stat_blob[:avg_rating]
     hanchan.tenhou_log = hanchan_log.url
+    
+    hanchan.players.each { |hanchan_player|
+      hanchan_player.commit_to_db(@db)
+    }
 
-    @db[:hanchan].insert(**hanchan.commit_payload)
+    hanchan_id = hanchan.commit_to_db(@db)
+
+    hanchan.players.each { |hanchan_player| 
+      hanchan_player.commit_hanchan_id(@db, hanchan_id)
+    }
+
+    stat_blob[:hand_results].each { |hand_result| 
+      hand_result_model = Model_HandResult.new(hand_result)
+      hand_result_model.hanchan_id = hanchan_id
+
+      hand_result_model.commit_to_db(@db)
+    }
+    exit
   end
 
   def run
@@ -181,7 +175,8 @@ class Batch_TenhouLog
       puts "--------------------------------------"
       puts "Begin parsing: #{log_archive_filename}"
       puts "--------------------------------------"
-      get_hanchan_logs(log_archive_filename).each { |hanchan_log| 
+      next unless log_archive_filename["scc2019032206"]
+      get_hanchan_logs(log_archive_filename).each { |hanchan_log|
         next if log_visited?(hanchan_log)
         parse_log_body(hanchan_log)
         puts "Finished parsing: #{hanchan_log.url}"

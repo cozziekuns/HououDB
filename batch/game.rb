@@ -293,6 +293,8 @@ class Game_Hanchan
     @hanchan_players.each { |hanchan_player|
       hanchan_player.placement = placements.index(hanchan_player.score / 100)
       hanchan_player.player_id = @player_ids[hanchan_player.placement]
+      # Hack to fix tiebreaker scenarios
+      placements[hanchan_player.placement] = nil
     }
 
     @hand_results[-1].is_oras = true

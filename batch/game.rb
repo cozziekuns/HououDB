@@ -302,6 +302,10 @@ class Game_Hanchan
 
 end
 
+# For debugging purposes only
+
+__END__
+
 File.open('test_log', 'r+') { |f| 
   log_body = f.read
 

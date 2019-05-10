@@ -3,7 +3,7 @@ require 'sinatra/json'
 require 'sinatra/reloader' if development?
 require 'sequel'
 
-DB = Sequel.connect('postgres://localhost/hououdb')
+DB = Sequel.connect(ENV['DATABASE_URL'] || 'postgres://localhost/hououdb')
 
 def get_hanchan_player(hanchan_player_id)
   return DB[:hanchan_players].first(id: hanchan_player_id)
@@ -23,7 +23,7 @@ end
 
 get '/liebe' do
   response = {}
-  
+
   response[:hanchan] = []
 
   DB[:hanchan_players].where(username: 'liebe').map(:id).each { |hanchan_player_id|

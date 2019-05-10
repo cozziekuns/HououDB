@@ -11,6 +11,7 @@ GEM
     nokogiri (1.10.1)
       mini_portile2 (~> 2.4.0)
     pg (1.1.4)
+    puma (3.12.1)
     rack (2.0.6)
     rack-protection (2.0.5)
       rack
@@ -38,10 +39,14 @@ DEPENDENCIES
   haml (~> 5.0)
   nokogiri (~> 1.10)
   pg (~> 1.1)
+  puma (~> 3.12)
   sequel (~> 5.18)
   sinatra (~> 2.0)
   sinatra-contrib (~> 2.0)
   zlib (~> 1.0)
+
+RUBY VERSION
+   ruby 2.5.3p105
 
 BUNDLED WITH
    2.0.1

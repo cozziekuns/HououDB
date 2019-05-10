@@ -1,8 +1,7 @@
 # frozen_string_literal: true
 
-ruby '2.5.3'
-
 source "https://rubygems.org"
+ruby '2.5.3'
 
 git_source(:github) {|repo_name| "https://github.com/#{repo_name}" }
 
@@ -20,6 +19,4 @@ gem "haml", "~> 5.0"
 
 gem "sinatra-contrib", "~> 2.0"
 
-group :production do
-  gem "puma"
-end
+gem "puma", "~> 3.12"

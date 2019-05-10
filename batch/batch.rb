@@ -188,10 +188,6 @@ class Batch_TenhouLog
 
     hanchan_player_ids = upsert_hanchan_players(results[:hanchan_players])
     update_hanchan_with_player_ids(hanchan_id, hanchan_player_ids)
-
-    File.open("logs/#{hanchan_id}.log", 'w+') { |f|
-      f.write(log_body)
-    }
   end
 
   def run

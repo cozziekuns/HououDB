@@ -37,7 +37,7 @@ class Batch_TenhouLog
   end
 
   def init_database_connection
-    @db = Sequel.connect('postgres://localhost/hououdb')
+    @db = Sequel.connect(ENV['DATABASE_URL'] || 'postgres://localhost/hououdb')
   end
 
   def log_visited?(hanchan_log)

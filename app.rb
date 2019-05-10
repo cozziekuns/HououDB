@@ -1,55 +1,54 @@
 require 'sinatra'
+require 'sinatra/json'
 require 'sinatra/reloader' if development?
 require 'sequel'
-require 'haml'
 
 DB = Sequel.connect('postgres://localhost/hououdb')
 
-def get_player_name(player_id)
-  DB[:players].where(id: player_id).get(:username)
+def get_hanchan_player(hanchan_player_id)
+  return DB[:hanchan_players].first(id: hanchan_player_id)
 end
 
 def get_formatted_timestamp(timestamp)
   return timestamp.to_s.split(" ")[0...2].join(" ") 
 end
 
-get '/' do
-  haml :index
+def get_average_rating(hanchan_id)
+  DB[:hanchan_players].where(hanchan_id: hanchan_id).avg(:rating)
 end
 
-get '/search' do
-  query = DB[:hanchan]
+get '/' do
+  'Hello World'
+end
 
-  params.keys.each { |key|
-    if key[/player-\d+/]
-      player_id = DB[:players].where(username: params[key]).get(:id)
-      if player_id
-        query = query.where{
-          (east_player_id =~ player_id) | (south_player_id =~ player_id) | 
-          (west_player_id =~ player_id) | (north_player_id =~ player_id)
-        }
-      else
-        # TODO: Player not found.
-        query = query.where{east_player_id =~ -1}
-      end
-    end
+get '/liebe' do
+  response = {}
+  
+  response[:hanchan] = []
+
+  DB[:hanchan_players].where(username: 'liebe').map(:id).each { |hanchan_player_id|
+    DB[:hanchan].where{
+      (east_hanchan_player_id =~ hanchan_player_id) | 
+      (south_hanchan_player_id =~ hanchan_player_id) | 
+      (west_hanchan_player_id =~ hanchan_player_id) | 
+      (north_hanchan_player_id =~ hanchan_player_id)
+    }.each { |hanchan| 
+      formatted_hanchan = {}
+
+      formatted_hanchan[:rating] = get_average_rating(hanchan[:id])
+      formatted_hanchan[:timestamp] = get_formatted_timestamp(hanchan[:time_start])
+
+      formatted_hanchan[:players] = ['east', 'south', 'west', 'north'].map { |wind_str| 
+        (wind_str + '_hanchan_player_id').to_sym
+      }.map { |sym|
+        get_hanchan_player(hanchan[sym])
+      }
+
+      formatted_hanchan[:tenhou_log] = hanchan[:tenhou_log]
+
+      response[:hanchan].push(formatted_hanchan)
+    }
   }
 
-  @hanchan_ary = []
-
-  query.all.each { |hanchan|
-    formatted_hanchan = {}
-
-    formatted_hanchan[:rating] = hanchan[:avg_rating].to_s
-    formatted_hanchan[:timestamp] = get_formatted_timestamp(hanchan[:time_start])
-    formatted_hanchan[:east_player_name] = get_player_name(hanchan[:east_player_id])
-    formatted_hanchan[:south_player_name] = get_player_name(hanchan[:south_player_id])
-    formatted_hanchan[:west_player_name] = get_player_name(hanchan[:west_player_id])
-    formatted_hanchan[:north_player_name] = get_player_name(hanchan[:north_player_id])
-    formatted_hanchan[:tenhou_log] = hanchan[:tenhou_log]
-
-    @hanchan_ary.push(formatted_hanchan)
-  }
-
-  haml :index
+  json(response)
 end

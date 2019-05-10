@@ -53,32 +53,14 @@ class Batch_TenhouLog
   # * ORM Helper Methods
   #---------------------------------------------------------------------------
 
-  def create_hanchan(hanchan_log)
+  def upsert_hanchan(hanchan_log)
     return @db[:hanchan].insert({
       tenhou_log: hanchan_log.url,
       time_start: hanchan_log.timestamp
     })
   end
 
-  def get_or_create_player(player_name)
-    player_model = @db[:players].where(username: player_name).first
-    
-    return player_model[:id] if player_model
-    return @db[:players].insert(username: player_name)
-  end
-
-  def get_or_create_players(hanchan_log)
-    player_ids = []
-
-    hanchan_log.players.each { |player_name|
-      player_id = get_or_create_player(player_name)
-      player_ids.push(player_id)
-    }
-
-    return player_ids
-  end
-
-  def create_hanchan_players(hanchan_players)
+  def upsert_hanchan_players(hanchan_players)
     hanchan_player_ids = []
 
     hanchan_players.each { |hanchan_player|
@@ -106,7 +88,7 @@ class Batch_TenhouLog
     @db[:hanchan].where(id: hanchan_id).update(payload)
   end
 
-  def create_hand_results(hand_results)
+  def upsert_hand_results(hand_results)
     hand_result_ids = []
     
     hand_results.each { |hand_result| 
@@ -190,20 +172,21 @@ class Batch_TenhouLog
   def parse_log_body(hanchan_log)
     log_body = get_log_body(hanchan_log.url)
 
-    hanchan_id = create_hanchan(hanchan_log)
-    player_ids = get_or_create_players(hanchan_log)
-
+    hanchan_id = upsert_hanchan(hanchan_log)
     puts "--------------------------------------"
     puts " Created new Hanchan ID#{hanchan_id}"
-    puts " Player IDs: #{player_ids}"
     puts "--------------------------------------"
 
-    hanchan = Game_Hanchan.new(hanchan_id, player_ids)
+    hanchan = Game_Hanchan.new(hanchan_id)
     results = hanchan.parse(log_body)
 
-    create_hand_results(results[:hand_results])
+    upsert_hand_results(results[:hand_results])
 
-    hanchan_player_ids = create_hanchan_players(results[:hanchan_players])
+    results[:hanchan_players].each { |hanchan_player|
+      hanchan_player.username = hanchan_log.players[hanchan_player.placement]
+    }
+
+    hanchan_player_ids = upsert_hanchan_players(results[:hanchan_players])
     update_hanchan_with_player_ids(hanchan_id, hanchan_player_ids)
 
     File.open("logs/#{hanchan_id}.log", 'w+') { |f|

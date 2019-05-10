@@ -37,32 +37,32 @@ class Game_HanchanPlayer
 
   attr_reader   :hand
   attr_reader   :seat
-  attr_accessor :player_id
   attr_accessor :dan
   attr_accessor :rating
   attr_accessor :placement
   attr_accessor :score
+  attr_accessor :username
 
   def initialize(hanchan_id, seat)
     @hanchan_id = hanchan_id
-    @player_id = nil
     @seat = seat
     @dan = 0
     @rating = 0
     @hand = Game_Hand.new
     @score = 0
     @placement = 0
+    @username = ''
   end
 
   def payload
     return {
       hanchan_id: @hanchan_id,
-      player_id: @player_id,
       seat: @seat,
       dan: @dan,
       rating: @rating,
       score: @score,
       placement: @placement,
+      username: @username,
     }
   end
 
@@ -143,10 +143,9 @@ end
 
 class Game_Hanchan
 
-  def initialize(hanchan_id, player_ids)
+  def initialize(hanchan_id)
     @db = nil
     @hanchan_id = hanchan_id
-    @player_ids = player_ids
     @hand_events = []
     @hand_results = []
     init_hanchan_players
@@ -292,7 +291,6 @@ class Game_Hanchan
 
     @hanchan_players.each { |hanchan_player|
       hanchan_player.placement = placements.index(hanchan_player.score / 100)
-      hanchan_player.player_id = @player_ids[hanchan_player.placement]
       # Hack to fix tiebreaker scenarios
       placements[hanchan_player.placement] = nil
     }
@@ -309,6 +307,6 @@ __END__
 File.open('test_log', 'r+') { |f| 
   log_body = f.read
 
-  hanchan = Game_Hanchan.new(nil, [1, 2, 3, 4])
+  hanchan = Game_Hanchan.new(nil)
   hanchan.parse(log_body)
 }

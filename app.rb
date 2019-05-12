@@ -5,6 +5,8 @@ require 'sequel'
 
 DB = Sequel.connect(ENV['DATABASE_URL'] || 'postgres://localhost/hououdb')
 
+# TODO: Move these getter methods into another file
+
 def get_hanchan_player(hanchan_player_id)
   return DB[:hanchan_players].first(id: hanchan_player_id)
 end
@@ -17,16 +19,10 @@ def get_average_rating(hanchan_id)
   DB[:hanchan_players].where(hanchan_id: hanchan_id).avg(:rating)
 end
 
-get '/' do
-  'Hello World'
-end
+def player_id_to_hanchan_list(hanchan_player_ids)
+  hanchan_list = []
 
-get '/liebe' do
-  response = {}
-
-  response[:hanchan] = []
-
-  DB[:hanchan_players].where(username: 'liebe').map(:id).each { |hanchan_player_id|
+  hanchan_player_ids.each { |hanchan_player_id|
     DB[:hanchan].where{
       (east_hanchan_player_id =~ hanchan_player_id) | 
       (south_hanchan_player_id =~ hanchan_player_id) | 
@@ -46,9 +42,34 @@ get '/liebe' do
 
       formatted_hanchan[:tenhou_log] = hanchan[:tenhou_log]
 
-      response[:hanchan].push(formatted_hanchan)
+      hanchan_list.push(formatted_hanchan)
     }
   }
+
+  return hanchan_list
+end
+
+def calculate_placements(player_query)
+  placements = []
+
+  player_query.group_and_count(:placement).each { |counts|
+    placements[counts[:placement]] = counts[:count]
+  }
+
+  return placements
+end
+
+get '/' do
+  'Hello World'
+end
+
+get '/liebe' do
+  response = {}
+
+  player_query = DB[:hanchan_players].where(username: 'liebe')
+
+  response[:hanchan] = player_id_to_hanchan_list(player_query.map(:id))
+  response[:placements] = calculate_placements(player_query)
 
   json(response)
 end

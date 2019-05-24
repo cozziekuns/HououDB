@@ -1,7 +1,11 @@
 require 'sinatra'
+require 'sinatra/cors'
 require 'sinatra/json'
 require 'sinatra/reloader' if development?
 require 'sequel'
+
+set :allow_origin, "*"
+set :allow_methods, "GET"
 
 DB = Sequel.connect(ENV['DATABASE_URL'] || 'postgres://localhost/hououdb')
 

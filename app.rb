@@ -68,6 +68,8 @@ get '/' do
 end
 
 get '/liebe' do
+  content_type :json
+
   response = {}
 
   player_query = DB[:hanchan_players].where(username: 'liebe')

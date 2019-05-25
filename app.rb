@@ -68,8 +68,6 @@ get '/' do
 end
 
 get '/liebe' do
-  content_type :json
-
   response = {}
 
   player_query = DB[:hanchan_players].where(username: 'liebe')
@@ -91,6 +89,19 @@ get '/player/:name/profile' do |username|
   response[:rating] = player_info[:rating].round
   response[:stable_dan] = 8.3
   response[:total_games] = player_query.count
+
+  json(response)
+end
+
+get '/player/:name/match_history' do |username|
+  response = {}
+
+  player_query = DB[:hanchan_players]
+    .where(username: 'liebe')
+    .order(Sequel.desc(:id))
+    .limit(20)
+
+  response[:hanchan] = player_id_to_hanchan_list(player_query.map(:id))
 
   json(response)
 end

@@ -87,8 +87,8 @@ get '/player/:name/profile' do |username|
   player_info = player_query.order(:id).last
 
   # TODO: implement actual stable dan formula
-  response[:dan] = player_info.dan
-  response[:rating] = player_info.rating.round
+  response[:dan] = player_info[:dan]
+  response[:rating] = player_info[:rating].round
   response[:stable_dan] = 8.3
   response[:total_games] = player_query.count
 

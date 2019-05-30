@@ -97,7 +97,7 @@ get '/player/:name/match_history' do |username|
   response = {}
 
   player_query = DB[:hanchan_players]
-    .where(username: 'liebe')
+    .where(username: username)
     .order(Sequel.desc(:id))
     .limit(20)
 

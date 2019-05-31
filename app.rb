@@ -45,8 +45,6 @@ def player_id_to_hanchan_list(hanchan_player_ids)
         get_hanchan_player(hanchan[sym])
       }
 
-      formatted_hanchan[:players].sort! { |player| player[:placement] }
-
       formatted_hanchan[:tenhou_log] = hanchan[:tenhou_log]
 
       hanchan_list.push(formatted_hanchan)

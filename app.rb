@@ -35,6 +35,7 @@ def player_id_to_hanchan_list(hanchan_player_ids)
     }.each { |hanchan| 
       formatted_hanchan = {}
 
+      formatted_hanchan[:id] = hanchan[:id]
       formatted_hanchan[:rating] = get_average_rating(hanchan[:id])
       formatted_hanchan[:timestamp] = get_formatted_timestamp(hanchan[:time_start])
 

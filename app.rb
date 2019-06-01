@@ -106,6 +106,8 @@ get '/player/:name/match_history' do |username|
     .order(Sequel.desc(:id))
     .limit(20)
 
+  return json(response) if player_query.empty?
+    
   response[:hanchan] = player_id_to_hanchan_list(player_query.map(:id))
 
   json(response)

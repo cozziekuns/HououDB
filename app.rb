@@ -89,6 +89,11 @@ get '/player/:name/profile' do |username|
   player_query = DB[:hanchan_players].where(username: username)
   player_info = player_query.order(:id).last
 
+  if not player_info
+    response[:error] = 'player_not_found'
+    return json(response)
+  end
+
   # TODO: implement actual stable dan formula
   response[:dan] = player_info[:dan]
   response[:rating] = player_info[:rating].round
@@ -106,8 +111,11 @@ get '/player/:name/match_history' do |username|
     .order(Sequel.desc(:id))
     .limit(20)
 
-  return json(response) if player_query.empty?
-    
+  if player_query.empty?
+    response[:error] = 'player_not_found'
+    return json(response)
+  end
+
   response[:hanchan] = player_id_to_hanchan_list(player_query.map(:id))
 
   json(response)

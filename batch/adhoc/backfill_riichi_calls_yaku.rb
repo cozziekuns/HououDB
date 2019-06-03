@@ -62,7 +62,6 @@ class Batch_BackfillHandResults
     @db[:hanchan].each { |hanchan| 
       log_body = get_log_body(hanchan[:tenhou_log])
       parse_log_body(log_body, hanchan[:id])
-      exit
     }
   end
 

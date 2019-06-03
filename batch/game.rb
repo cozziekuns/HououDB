@@ -79,11 +79,14 @@ class Game_HandResult
   attr_accessor :honba
   attr_accessor :riichi_sticks
   attr_accessor :dora
+  attr_accessor :riichi
+  attr_accessor :naki
   attr_accessor :result_type
   attr_accessor :winning_player
   attr_accessor :losing_player
   attr_accessor :fu
   attr_accessor :han
+  attr_accessor :yaku
   attr_accessor :base_score
   attr_accessor :is_oras
 
@@ -94,11 +97,14 @@ class Game_HandResult
     @honba = 0
     @riichi_sticks = 0
     @dora = 0
+    @riichi = 0
+    @naki = 0
     @result_type = 0
     @winning_player = nil
     @losing_player = nil
     @fu = 0
     @han = 0
+    @yaku = 0
     @base_score = 0
     @is_oras = false
   end
@@ -114,25 +120,16 @@ class Game_HandResult
       west_player_score: @scores[2],
       north_player_score: @scores[3],
       result_type: @result_type,
+      riichi: @riichi,
+      naki: @naki,
       han: @han,
       fu: @fu,
       base_score: @base_score,
+      yaku: @yaku,
       winning_player: @winning_player,
       losing_player: @losing_player,
       is_oras: @is_oras,
     }
-  end
-
-end
-
-#==============================================================================
-# ** Game_HandEvent
-#==============================================================================
-
-class Game_HandEvent
-
-  def initialize(type)
-    @type = type
   end
 
 end
@@ -146,7 +143,6 @@ class Game_Hanchan
   def initialize(hanchan_id)
     @db = nil
     @hanchan_id = hanchan_id
-    @hand_events = []
     @hand_results = []
     init_hanchan_players
   end
@@ -177,6 +173,10 @@ class Game_Hanchan
       parse_draw_node(node)
     when /\A[DEFG]\d+\Z/
       parse_discard_node(node)
+    when 'REACH'
+      parse_reach_node(node)
+    when 'N'
+      parse_naki_node(node)
     when 'AGARI'
       parse_agari_node(node)
     when 'RYUUKYOKU'
@@ -226,6 +226,15 @@ class Game_Hanchan
     @hanchan_players[seat].hand.discard(node.name[1..-1].to_i)
   end
 
+  def parse_reach_node(node)
+     return if not node.attributes['step'].value.to_i == 2
+     @hand_results[-1].riichi |= (1 << node.attributes['who'].value.to_i)
+  end
+
+  def parse_naki_node(node)
+    @hand_results[-1].naki |= (1 << node.attributes['who'].value.to_i)
+  end
+
   def parse_agari_node(node)
     hand_result = @hand_results[-1]
 
@@ -253,9 +262,12 @@ class Game_Hanchan
     end
 
     total_han = 0
-    yaku.each_with_index { |han, i| 
-      next if i % 2 == 0
-      total_han += han
+    yaku.each_with_index { |value, i| 
+      if i % 2 == 0
+        hand_result.yaku |= (1 << value)
+      else
+        total_han += value
+      end
     }
 
     hand_result.han = total_han
@@ -301,12 +313,10 @@ class Game_Hanchan
 end
 
 # For debugging purposes only
-
 __END__
 
 File.open('test_log', 'r+') { |f| 
   log_body = f.read
 
   hanchan = Game_Hanchan.new(nil)
-  hanchan.parse(log_body)
 }

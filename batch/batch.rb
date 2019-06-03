@@ -44,11 +44,6 @@ class Batch_TenhouLog
     return !!@db[:hanchan].where(tenhou_log: hanchan_log.url).first
   end
 
-  def generate_raw_uri(log_uri)
-    raw_uri = log_uri.gsub("?log=") {"mjlog2xml.cgi?"}
-    raw_uri.gsub("http") { "https" }
-  end
-
   #---------------------------------------------------------------------------
   # * ORM Helper Methods
   #---------------------------------------------------------------------------

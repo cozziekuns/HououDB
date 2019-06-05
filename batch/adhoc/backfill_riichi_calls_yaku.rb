@@ -58,7 +58,7 @@ class Batch_BackfillHandResults
   end
 
   def run
-    @db[:hanchan].where{ id > 1937 }.each { |hanchan| 
+    @db[:hanchan].where{ id > 3070 }.each { |hanchan| 
       log_body = get_log_body(hanchan[:tenhou_log])
       parse_log_body(log_body, hanchan[:id])
       puts "Finished backfill for HanchanID: #{hanchan[:id]}"

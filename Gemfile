@@ -19,6 +19,6 @@ gem "haml", "~> 5.0"
 
 gem "sinatra-contrib", "~> 2.0"
 
-gem "puma", "~> 3.12"
+gem "puma", "~> 4.3"
 
 gem "sinatra-cors", "~> 1.1"
